@@ -3,6 +3,12 @@ name = "millionaire"
 version = "0.1.0"
 authors = ["Rainbow Asteroids <rainbow@portal2d.xyz>"]
 edition = "2018"
+description = "Game written in Rust. The goal is to get 1 million dollars by trading stonks."
+readme = "README.md"
+repository = "https://gitea.portal2d.xyz/RainbowAsteroids/Millionaire"
+license = "GPL-3.0-only"
+keywords = ["game", "text-based"]
+categories = ["games", "command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
