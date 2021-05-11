@@ -1,6 +1,6 @@
 [package]
 name = "millionaire"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Rainbow Asteroids <rainbow@portal2d.xyz>"]
 edition = "2018"
 description = "Game written in Rust. The goal is to get 1 million dollars by trading stonks."
