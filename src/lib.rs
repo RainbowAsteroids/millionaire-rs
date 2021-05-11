@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher};
 use rand::Rng;
 
 pub struct Stock<'a> {
+    direction: i64,
     id: i64,
     initial_value: i64,
     name: &'a str,
@@ -15,7 +16,7 @@ pub struct Stock<'a> {
 impl<'a> Stock<'a> {
     /// Generates a new stock.
     pub fn new(id: i64, name: &'a str, value: i64, variation: i64) -> Self {
-        Self { id, initial_value: value, name, value, variation }
+        Self { direction: 0, id, initial_value: value, name, value, variation }
     }
 
     /// Getter for the current value of the stock.
@@ -27,17 +28,20 @@ impl<'a> Stock<'a> {
     /// Getter for the stock's id
     pub fn id(&self) -> i64 { self.id }
 
-    /// Varies the value of the stock and returns how much the stock was varied.
-    pub fn vary(&mut self) -> i64 {
-        let variation = self.variation;
-        let vary = rand::thread_rng().gen_range(-variation..variation);
-        self.value += vary;
-        vary
+    /// Varies the value of the stock.
+    pub fn vary(&mut self) {
+        let random = rand::thread_rng().gen_range(-self.variation..self.variation);
+        // ((x * 3) / 5) == x * 0.6, but no need to cast twice
+        self.direction = ((self.direction * 3)/5) + random;
+        self.value += self.direction;
     }
 
     /// Resets the value and balance of the stock. Used when the stock value reaches or 
     /// is less than 0.
-    pub fn reset(&mut self) { self.value = self.initial_value; }
+    pub fn reset(&mut self) { 
+        self.value = self.initial_value;
+        self.direction = 0;
+    }
 }
 
 impl<'a> Hash for Stock<'a> {
@@ -76,13 +80,14 @@ impl<'a> Display for Stock<'a> {
 pub struct Player {
     balance: i64,
     income: i64,
+    initial_income: i64,
     stock_balances: HashMap<i64, i64>,
 }
 
 impl Player {
     /// Generates a new `Player`.
     pub fn new(balance: i64, income: i64) -> Self {
-        Self { balance, income, stock_balances: HashMap::new() }
+        Self { balance, income, initial_income: income, stock_balances: HashMap::new() }
     }
 
     /// Getter for the balance
@@ -96,6 +101,9 @@ impl Player {
             return 0;
         }
     }
+
+    /// Getter for the income
+    pub fn income(&self) -> i64 { self.income }
 
     /// Purchases a stock. Returns `Err(())` if the player had too low of a balance.
     pub fn buy_stock(&mut self, stock: &Stock, amount: i64) -> Result<(), ()> {
@@ -116,12 +124,25 @@ impl Player {
         Ok(())
     }
 
+    /// Resets a stock balance back to 0.
     pub fn reset_stock(&mut self, stock: &Stock) {
         self.stock_balances.insert(stock.id(), 0);
     }
 
     /// Increment the balance by the player's income.
     pub fn collect_income(&mut self) { self.balance += self.income }
+
+    /// Increases the income of the player by the initial income amount for the cost of 
+    /// 10 times the initial income. Returns an Err(()) if the player didn't have enough
+    /// money to increase their income.
+    pub fn increase_income(&mut self) -> Result<(), ()> { 
+        let cost = self.initial_income * 10;
+        if cost > self.balance { return Err(()); }
+
+        self.income += self.initial_income;
+        self.balance -= cost;
+        Ok(()) 
+    }
 
     /// Returns the balance of the player plus the worth of the player's owned
     /// stock.

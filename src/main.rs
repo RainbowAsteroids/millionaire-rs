@@ -57,19 +57,39 @@ fn net_worth_breakdown(player: &Player, stocks: &[Stock]) {
     println!("---");
 }
 
+fn double_check(prompt: &str, default: bool) -> Result<bool, io::Error> {
+    print!("{} {} ", prompt, if default { "(Y/n)" } else { "(y/N)" });
+    io::stdout().flush()?;
+
+    let mut choice = String::new();
+    io::stdin().read_line(&mut choice)?;
+    choice.make_ascii_lowercase();
+
+    if default {
+        Ok(!choice.starts_with("n"))
+    } else {
+        Ok(choice.starts_with("y"))
+    }
+}
+
 fn main() {
     let mut goal = 1_000_000;
+    let mut income = 1000;
+    let mut initial_balance = 1000;
+
     loop {
         let options = ["Play game!", "Quit"];
         match *menu(&options).expect("IO error") {
             "Play game!" => {
                 let mut run_game = true;
-                let mut player = Player::new(1000, 1000);
+                let initial_income = income;
+                let mut player = Player::new(initial_balance, income);
                 let mut stocks = [
                     Stock::new(0, "Safe stock", 50, 10),
                     Stock::new(1, "Medium stock", 50, 25),
                     Stock::new(2, "Risky stock", 50, 50),
                 ];
+
                 while run_game {
                     for s in stocks.iter_mut() {
                         if s.value() <= 0 {
@@ -85,7 +105,7 @@ fn main() {
                         break;
                     }
 
-                    let options = ["Buy stocks", "Sell stocks", 
+                    let options = ["Buy stocks", "Sell stocks", "Increase income",
                                    "Print net worth breakdown", "End turn", "Quit game"];
                     
                     loop {
@@ -96,10 +116,12 @@ fn main() {
                         } else {
                             println!("Balance: {}\n", player.balance());
                         }
-                        
-                        match *menu(&options).expect("IO error") {
+
+                        let choice = *menu(&options).expect("IO error");
+                        println!();
+                    
+                        match choice {
                             "Buy stocks" => {
-                                println!();
                                 let stock = menu(&stocks).expect("IO error");
                                 let prompt = format!(
                                         "How much stock would you like to buy? (Max: {}) ",
@@ -111,7 +133,6 @@ fn main() {
                                 }
                             }
                             "Sell stocks" => {
-                                println!();
                                 let stock = menu(&stocks).expect("IO error");
                                 let prompt = format!(
                                         "How much stock would you like to sell? (Max: {}) ",
@@ -122,23 +143,26 @@ fn main() {
                                     println!("You do not have enough stock.");
                                 }
                             }
+                            "Increase income" => {
+                                println!("An income increase costs {}.", initial_income * 10);
+                                if double_check(
+                                    "Are you sure you want to increase your income?", true
+                                ).expect("IO Error") {
+                                    if let Err(()) = player.increase_income() {
+                                        println!("You couldn't afford an income increase.");
+                                    }
+                                }
+                            }
                             "Print net worth breakdown" => { 
                                 net_worth_breakdown(&player, &stocks);
                             }
                             "End turn" => { 
-                                println!();
                                 player.collect_income();
                                 break; 
                             }
                             "Quit game" => {
-                                print!("Are you sure you want to end the game? (y/N) ");
-                                io::stdout().flush().expect("IO Error");
-                                let mut choice = String::new();
-                                io::stdin().read_line(&mut choice).expect("IO Error");
-                                choice.make_ascii_lowercase();
-
-                                if choice.starts_with("y") {
-                                    println!();
+                                if double_check("Are you sure you want to end the game?", 
+                                                false).expect("IO Error") {
                                     run_game = false;
                                     break;
                                 }
@@ -151,6 +175,7 @@ fn main() {
                         s.vary();
                     }
                 }
+                println!();
             }
             "Quit" => {
                 println!("Goodbye ;(");
