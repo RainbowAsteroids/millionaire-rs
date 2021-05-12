@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
 use std::io::{self, Write};
-use millionaire::{self, Stock, Player};
+use millionaire::{self, Player, Stock};
 
 fn number_input(prompt: &str) -> Result<usize, io::Error> {
     loop {
@@ -76,6 +76,7 @@ fn main() {
     let mut goal = 1_000_000;
     let mut income = 1000;
     let mut initial_balance = 1000;
+    let mut new_stock_cost = 15000;
 
     loop {
         let options = ["Play game!", "Quit"];
@@ -84,11 +85,18 @@ fn main() {
                 let mut run_game = true;
                 let initial_income = income;
                 let mut player = Player::new(initial_balance, income);
-                let mut stocks = [
-                    Stock::new(0, "Safe stock", 50, 10),
-                    Stock::new(1, "Medium stock", 50, 25),
-                    Stock::new(2, "Risky stock", 50, 50),
-                ];
+                
+                let mut stocks = Vec::new();
+
+                for _ in 0..3 {
+                    let name = millionaire::generate_name();
+                    let stock = millionaire::generate_stock(stocks.len() as i64, 10, 100, 
+                                                            10, 100, name);
+                    stocks.push(stock);
+                }
+                let options = ["Buy stocks", "Sell stocks", "Increase income",
+                               "Add a new stock", "Print net worth breakdown", 
+                               "End turn", "Quit game"];
 
                 while run_game {
                     for s in stocks.iter_mut() {
@@ -101,12 +109,11 @@ fn main() {
 
                     let mut breakdown_printed = false;
                     if player.net_worth(&stocks) > goal {
+                        net_worth_breakdown(&player, &stocks);
                         println!("You win!");
                         break;
                     }
 
-                    let options = ["Buy stocks", "Sell stocks", "Increase income",
-                                   "Print net worth breakdown", "End turn", "Quit game"];
                     
                     loop {
                         println!();
@@ -153,6 +160,21 @@ fn main() {
                                     }
                                 }
                             }
+                            "Add a new stock" => {
+                                println!("Adding a new stock costs {}", new_stock_cost);
+                                if double_check(
+                                    "Are you sure you want to unlock a new stock?", true
+                                ).expect("IO error") {
+                                    if let Err(()) = player.withdraw(new_stock_cost) {
+                                        println!("You couldn't afford a new stock.");
+                                    } else {
+                                        let name = millionaire::generate_name();
+                                        let stock = millionaire::generate_stock(
+                                            stocks.len() as i64, 10, 100, 10, 100, name);
+                                        stocks.push(stock);
+                                    }
+                                }
+                            }
                             "Print net worth breakdown" => { 
                                 net_worth_breakdown(&player, &stocks);
                             }
@@ -167,7 +189,7 @@ fn main() {
                                     break;
                                 }
                             }
-                            _ => { /* unreachable case */ }
+                            _ => { panic!("unreachable case in game loop"); }
                         }
                     }
 
@@ -181,7 +203,7 @@ fn main() {
                 println!("Goodbye ;(");
                 break;
             }
-            _ => { /* unreachable case */ }
+            _ => { panic!("unreachable case in the main loop"); }
         }
     }
 }

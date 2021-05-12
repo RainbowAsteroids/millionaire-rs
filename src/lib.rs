@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 use std::cmp::Ordering;
-use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
+use std::fmt::{self, Display, Formatter};
 use rand::Rng;
 
-pub struct Stock<'a> {
+pub struct Stock {
     direction: i64,
     id: i64,
     initial_value: i64,
-    name: &'a str,
+    name: String,
     value: i64,
     variation: i64,
 }
 
-impl<'a> Stock<'a> {
+impl Stock {
     /// Generates a new stock.
-    pub fn new(id: i64, name: &'a str, value: i64, variation: i64) -> Self {
+    pub fn new(id: i64, name: String, value: i64, variation: i64) -> Self {
         Self { direction: 0, id, initial_value: value, name, value, variation }
     }
 
@@ -23,14 +23,14 @@ impl<'a> Stock<'a> {
     pub fn value(&self) -> i64 { self.value }
 
     /// Getter for the stock's name
-    pub fn name(&self) -> &str { self.name }
+    pub fn name(&self) -> &str { &self.name }
 
     /// Getter for the stock's id
     pub fn id(&self) -> i64 { self.id }
 
     /// Varies the value of the stock.
     pub fn vary(&mut self) {
-        let random = rand::thread_rng().gen_range(-self.variation..self.variation);
+        let random = rand::thread_rng().gen_range(-self.variation..=self.variation);
         // ((x * 3) / 5) == x * 0.6, but no need to cast twice
         self.direction = ((self.direction * 3)/5) + random;
         self.value += self.direction;
@@ -44,34 +44,58 @@ impl<'a> Stock<'a> {
     }
 }
 
-impl<'a> Hash for Stock<'a> {
+impl Hash for Stock {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
         self.name.hash(state);
     }
 }
 
-impl<'a> Ord for Stock<'a> {
+impl Ord for Stock {
     fn cmp(&self, other: &Self) -> Ordering {
         self.id.cmp(&other.id)
     }
 }
 
-impl<'a> PartialOrd for Stock<'a> {
+impl PartialOrd for Stock {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a> PartialEq for Stock<'a> {
+impl PartialEq for Stock {
     fn eq(&self, other: &Self) -> bool {
         (self.id == other.id) && (self.name == other.name)
     }
 }
 
-impl<'a> Eq for Stock<'a> {}
+impl Eq for Stock {}
 
-impl<'a> Display for Stock<'a> {
+pub fn generate_name() -> String {
+    let first_names = [
+        "Trading", "Rainbow", "Cake", "Power", "Mining", "Spacecraft", "Cargo", "Crab", 
+        "Dining", "Computer", "Game", "Security", "Block", "Micro", "Time",
+    ];
+    let last_names = [
+        "Incorporated", "Enterprise", "Solutions", "Company", "Operations", "Factory",
+        "Agency", "Firm", "Chain", "Box", "Store", "Market",
+    ];
+
+    let first_name = first_names[rand::thread_rng().gen_range(0..first_names.len())];
+    let last_name = last_names[rand::thread_rng().gen_range(0..last_names.len())];
+
+    format!("{} {}", first_name, last_name)
+}
+
+pub fn generate_stock(id: i64, min_value: i64, max_value: i64, min_variation: i64, 
+                      max_variation: i64, name: String) -> Stock {
+    let value = rand::thread_rng().gen_range(min_value..=max_value);
+    let variation = rand::thread_rng().gen_range(min_variation..=max_variation);
+
+    Stock::new(id, name, value, variation)
+}
+
+impl Display for Stock {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}, Value: {}", self.name, self.value)
     }
@@ -151,5 +175,19 @@ impl Player {
         for s in stocks { result += s.value() * self.stock_balance(s) }
         result
     }
+
+    /// Remove an arbitrary amount of money from the player's balance. Should only be 
+    /// used when no other method applies (or when the Player struct has no other state
+    /// to manipulate).
+    pub fn withdraw(&mut self, amount: i64) -> Result<(), ()> {
+        if self.balance < amount { return Err(()); }
+        self.balance -= amount;
+        Ok(())
+    }
+
+    /// Add an arbitrary amount of money to the player's balance. Should only be used
+    /// when no other method applies (or when the Player struct has no other state to 
+    /// manipulate).
+    pub fn deposit(&mut self, amount: i64) { self.balance += amount; }
 }
 
