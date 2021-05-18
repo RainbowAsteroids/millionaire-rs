@@ -3,7 +3,11 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::fmt::{self, Display, Formatter};
 use rand::Rng;
+use serde::{Serialize, Deserialize};
 
+pub mod save;
+
+#[derive(Serialize, Deserialize)]
 pub struct Stock {
     direction: i64,
     id: i64,
@@ -71,6 +75,12 @@ impl PartialEq for Stock {
 
 impl Eq for Stock {}
 
+impl Display for Stock {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}, Value: {}", self.name, self.value)
+    }
+}
+
 pub fn generate_name() -> String {
     let first_names = [
         "Trading", "Rainbow", "Cake", "Power", "Mining", "Spacecraft", "Cargo", "Crab", 
@@ -95,12 +105,7 @@ pub fn generate_stock(id: i64, min_value: i64, max_value: i64, min_variation: i6
     Stock::new(id, name, value, variation)
 }
 
-impl Display for Stock {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}, Value: {}", self.name, self.value)
-    }
-}
-
+#[derive(Serialize, Deserialize)]
 pub struct Player {
     balance: i64,
     income: i64,
@@ -156,11 +161,9 @@ impl Player {
     /// Increment the balance by the player's income.
     pub fn collect_income(&mut self) { self.balance += self.income }
 
-    /// Increases the income of the player by the initial income amount for the cost of 
-    /// 10 times the initial income. Returns an Err(()) if the player didn't have enough
-    /// money to increase their income.
-    pub fn increase_income(&mut self) -> Result<(), ()> { 
-        let cost = self.initial_income * 10;
+    /// Increases the income of the player by the initial income amount for the specified 
+    /// cost. Returns an Err(()) if the player didn't have enough money.
+    pub fn increase_income(&mut self, cost: i64) -> Result<(), ()> { 
         if cost > self.balance { return Err(()); }
 
         self.income += self.initial_income;
